@@ -2,8 +2,7 @@
 #include <stdint.h>
 #include <Arduino.h>
 #include <BasicEncoder.h>
-#include "Keyboard.h"
-#include "Mouse.h"
+#include "HID-Project.h"
 
 uint8_t MODE = 0;
 uint8_t MODE_MAX = 2;
@@ -158,6 +157,15 @@ void encoder_loop() {
           Keyboard.release(KEY_LEFT_GUI);
           Keyboard.release(KEY_LEFT_SHIFT);
           Keyboard.release('z');
+        }
+        break;
+      case 2:
+        if (dir_enc01 > 0) {
+          Keyboard.press(MEDIA_VOLUME_DOWN);
+          Keyboard.release(MEDIA_VOLUME_DOWN);
+        } else {
+          Keyboard.press(MEDIA_VOLUME_UP);
+          Keyboard.release(MEDIA_VOLUME_UP);
         }
         break;
       
