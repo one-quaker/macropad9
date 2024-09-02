@@ -1,4 +1,4 @@
-#include "MatrixKeypad.h"
+#include "Keypad.h"
 #include <stdint.h>
 #include <Arduino.h>
 #include <BasicEncoder.h>
@@ -14,19 +14,19 @@ int8_t cur_enc01 = 0;
 int8_t prev_enc01 = 0;
 int8_t dir_enc01 = 0;
 
-const uint8_t rown = 4; //4 rows
-const uint8_t coln = 3; //3 columns
-uint8_t rowPins[rown] = {A1, A0, 15, 14}; //frist row is connect to pin 10, second to 9...
-uint8_t colPins[coln] = {7, 8, 9}; //frist column is connect to pin 6, second to 5...
-char keymap[rown][coln] = 
-  {{'1','2','3'}, //key of the frist row frist column is '1', frist row second column column is '2'
-   {'4','5','6'}, //key of the second row frist column is '4', second row second column column is '5'
-   {'7','8','9'},
-   {'X','X','0'},
-   };
-char key;
+const byte ROWS = 4;
+const byte COLS = 3;
+uint8_t rowPins[ROWS] = {A1, A0, 15, 14}; //frist row is connect to pin 10, second to 9...
+uint8_t colPins[COLS] = {7, 8, 9}; //frist column is connect to pin 6, second to 5...
+char keys[ROWS][COLS] = {
+  {'1','4','7'},
+  {'X','2','5'},
+  {'8','7','3'},
+  {'6','9','0'},
+};
+String msg;
 
-MatrixKeypad_t *keypad; //keypad is the variable that you will need to pass to the other functions
+Keypad kpd = Keypad(makeKeymap(keys), colPins, rowPins, COLS, ROWS); //swap rows and cols, library bug?
 BasicEncoder encoder(pinA, pinB);
 
 
@@ -34,7 +34,6 @@ void setup() {
 	Serial.begin(9600);
   Keyboard.begin();
   Mouse.begin();
-	keypad = MatrixKeypad_create((char*)keymap /* don't forget to do this cast */, rowPins, colPins, rown, coln); //creates the keypad object
 }
 
 void loop() {
@@ -43,16 +42,33 @@ void loop() {
 }
 
 void keyboard_loop() {
-  MatrixKeypad_scan(keypad); //scans for a key press event
-	if(MatrixKeypad_hasKey(keypad)){ //if a key was pressed
-		key = MatrixKeypad_getKey(keypad); //get the key
-    keyproc(key);
-		Serial.println(key); //prints the pressed key to the serial output
-	}
-}
+  if (kpd.getKeys()) {
+    for (int i=0; i<LIST_MAX; i++) {  // Scan the whole key list.
+      if (kpd.key[i].stateChanged) {  // Only find keys that have changed state.
+        switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
+          case PRESSED:
+            msg = " PRESSED.";
+            keyproc(kpd.key[i].kchar);
+            break;
+          case HOLD:
+            msg = " HOLD.";
+            break;
+          case RELEASED:
+            msg = " RELEASED.";
+            break;
+          case IDLE:
+            msg = " IDLE.";
+        } // end switch
+        Serial.print("Key ");
+        Serial.print(kpd.key[i].kchar);
+        Serial.println(msg);
+      } // end if stateChanged
+    } // end for
+  } // end if getKeys
+} // end keyboard loop
 
 void keyproc(char kcode) {
-  if (key == '0') {
+  if (kcode == '0') {
     MODE++;
     if (MODE > MODE_MAX) {
       MODE = 0;
