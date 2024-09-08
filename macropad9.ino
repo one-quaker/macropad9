@@ -9,10 +9,10 @@ uint8_t MODE = 0;
 uint8_t MODE_MAX = 5;
 uint8_t last_mode = MODE;
 
-const uint8_t F3603D_MODE = 0;
-const uint8_t F360SKETCH_MODE = 1;
-const uint8_t YT_MODE = 2;
-const uint8_t MOUSE_MODE = 3;
+const uint8_t YT_MODE = 0;
+const uint8_t MOUSE_MODE = 1;
+const uint8_t F3603D_MODE = 2;
+const uint8_t F360SKETCH_MODE = 3;
 const uint8_t GIT_MODE = 4;
 const uint8_t TERM_MODE = 5;
 
@@ -22,6 +22,9 @@ int8_t cur_enc01 = 0;
 int8_t prev_enc01 = 0;
 int8_t dir_enc01 = 0;
 int8_t mouse_speed = 10;
+
+String msg;
+bool show_display = true;
 
 const byte ROWS = 4;
 const byte COLS = 3;
@@ -33,8 +36,6 @@ char keys[ROWS][COLS] = {
   {'8','X','3'},
   {'6','9','0'},
 };
-String msg;
-bool show_display = true;
 
 Keypad kpd = Keypad(makeKeymap(keys), colPins, rowPins, COLS, ROWS); //swap rows and cols, library bug?
 BasicEncoder encoder(pinA, pinB);
@@ -67,7 +68,8 @@ void keyboard_loop() {
         switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
           case PRESSED:
             msg = " PRESSED.";
-            keyproc(kpd.key[i].kchar);
+            update_mode(kpd.key[i].kchar);
+            proc_key(kpd.key[i].kchar, kpd.key[i].kstate);
             break;
           case HOLD:
             msg = " HOLD.";
@@ -87,7 +89,7 @@ void keyboard_loop() {
   } // end if getKeys
 } // end keyboard loop
 
-void keyproc(char kcode) {
+void update_mode(char kcode) {
   if (kcode == '0') {
     MODE++;
     if (MODE > MODE_MAX) {
@@ -96,12 +98,9 @@ void keyproc(char kcode) {
     Serial.print("MODE: ");
     Serial.println(MODE);
   }
-
-  proc_mode(kcode);
-
 }
 
-void proc_mode(char kcode) {
+void proc_key(char kcode, int kstate) {
   switch (MODE) {
     case F3603D_MODE:
       keyproc_f360_3d(kcode);
@@ -124,7 +123,6 @@ void proc_mode(char kcode) {
       break;
   }
 }
-
 
 void update_display() {
   display.clear();
@@ -160,12 +158,12 @@ void keyproc_f360_3d(char kcode) {
       Keyboard.release(KEY_ESC);
       break;
     case '2':
-      Keyboard.press(KEY_BACKSPACE);
-      Keyboard.release(KEY_BACKSPACE);
-      break;
-    case '3':
       Keyboard.press(KEY_ENTER);
       Keyboard.release(KEY_ENTER);
+      break;
+    case '3':
+      Keyboard.press(KEY_BACKSPACE);
+      Keyboard.release(KEY_BACKSPACE);
       break;
     case '4':
       Keyboard.print("j");
@@ -276,13 +274,13 @@ void keyproc_mouse(char kcode) {
       Mouse.click(MOUSE_RIGHT);
       break;
     case '4':
-      Mouse.move(0, 0, mouse_speed);
+      Mouse.move(0, 0, -mouse_speed);
       break;
     case '5':
       Mouse.move(0, -mouse_speed, 0);
       break;
     case '6':
-      Mouse.move(0, 0, -mouse_speed);
+      Mouse.move(0, 0, mouse_speed);
       break;
     case '7':
       Mouse.move(-mouse_speed, 0, 0);
